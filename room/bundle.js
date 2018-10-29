@@ -1,3 +1,13 @@
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 System.register("graphics/color", [], function (exports_1, context_1) {
     "use strict";
     var __moduleName = context_1 && context_1.id;
@@ -506,6 +516,11 @@ System.register("math/vector2", ["math/point", "math/utils"], function (exports_
                 Vector2D.prototype.normalize = function () {
                     return this.divide(this.length);
                 };
+                Vector2D.prototype.rotate = function (angle) {
+                    var cos = Math.cos(utils_2.toRudian(angle));
+                    var sin = Math.sin(utils_2.toRudian(angle));
+                    return new Vector2D((cos * this.x - sin * this.y), (sin * this.x + cos * this.y));
+                };
                 Vector2D.prototype.scalar = function (to) {
                     return Vector2D.dot(this, to);
                 };
@@ -905,6 +920,7 @@ System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray
                     this.height = options.height;
                     this.halfScreen = options.halfScreen;
                     this.columnSize = options.columnSize;
+                    this.scale = options.scale;
                     this.world = options.world;
                     window.addEventListener('resize', function () { return _this.resize(); });
                 }
@@ -915,8 +931,8 @@ System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray
                     this.angle += rotate;
                 };
                 RayCastCamera.prototype.resize = function () {
-                    var width = (window.innerWidth / 2);
-                    var height = (window.innerHeight / 2);
+                    var width = (window.innerWidth / this.scale);
+                    var height = (window.innerHeight / this.scale);
                     var resolution = width / height;
                     this.width = width;
                     this.height = height;
@@ -979,17 +995,55 @@ System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray
         }
     };
 });
-System.register("states/game", ["event/index", "math/index", "system/rey-cast-camera", "system/world", "graphics/color", "math/map"], function (exports_22, context_22) {
+System.register("states/entity/player", ["system/game-object", "math/index"], function (exports_22, context_22) {
     "use strict";
     var __moduleName = context_22 && context_22.id;
-    var index_5, index_6, rey_cast_camera_1, world_1, color_1, map_1, wallMap, wallSize, width, height, columnSize, viewDistance, GameState;
+    var game_object_1, index_5, Player;
     return {
         setters: [
+            function (game_object_1_1) {
+                game_object_1 = game_object_1_1;
+            },
             function (index_5_1) {
                 index_5 = index_5_1;
-            },
+            }
+        ],
+        execute: function () {
+            Player = (function (_super) {
+                __extends(Player, _super);
+                function Player() {
+                    return _super !== null && _super.apply(this, arguments) || this;
+                }
+                Player.prototype.move = function (diff, map) {
+                    this.movePart(new index_5.Vector2D(0, diff.y), map);
+                    this.movePart(new index_5.Vector2D(diff.x, 0), map);
+                };
+                Player.prototype.movePart = function (diff, map) {
+                    var nextPosition = this.position.sum(diff);
+                    if (!map.get(nextPosition.x, nextPosition.y)) {
+                        this.position = nextPosition;
+                    }
+                };
+                Player.prototype.rotate = function (rotate) {
+                    this.angle += rotate;
+                };
+                return Player;
+            }(game_object_1.GameObject2D));
+            exports_22("Player", Player);
+        }
+    };
+});
+System.register("states/game", ["event/index", "math/index", "system/rey-cast-camera", "system/world", "graphics/color", "math/map", "states/entity/player"], function (exports_23, context_23) {
+    "use strict";
+    var __moduleName = context_23 && context_23.id;
+    var index_6, index_7, rey_cast_camera_1, world_1, color_1, map_1, player_1, wallMap, wallSize, width, height, columnSize, viewDistance, GameState;
+    return {
+        setters: [
             function (index_6_1) {
                 index_6 = index_6_1;
+            },
+            function (index_7_1) {
+                index_7 = index_7_1;
             },
             function (rey_cast_camera_1_1) {
                 rey_cast_camera_1 = rey_cast_camera_1_1;
@@ -1002,6 +1056,9 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
             },
             function (map_1_1) {
                 map_1 = map_1_1;
+            },
+            function (player_1_1) {
+                player_1 = player_1_1;
             }
         ],
         execute: function () {
@@ -1036,16 +1093,14 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
             viewDistance = 30;
             GameState = (function () {
                 function GameState() {
-                    this.rotateSpeed = 0.05;
-                    this.movementSpeed = 0.01;
                     this.floorColor = new color_1.Color(150, 150, 150);
                     this.cailColor = new color_1.Color(200, 200, 200);
                 }
                 GameState.prototype.init = function () {
                     var map = new map_1.default(22, wallSize, wallMap);
                     var world = new world_1.World(map);
-                    var position = new index_6.Vector2D(7.2, 3);
-                    var angle = 90;
+                    var position = new index_7.Vector2D(7.2, 3);
+                    var angle = 180;
                     var rayDistance = viewDistance - 1;
                     var viewAngle = 60;
                     var rayCount = width / columnSize;
@@ -1064,10 +1119,16 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
                         width: width,
                         height: height,
                         columnSize: columnSize,
-                        world: world
+                        world: world,
+                        scale: 1
                     });
                     this.world = world;
                     this.camera = camera;
+                    this.player = new player_1.Player();
+                    this.player.position = position;
+                    this.player.angle = angle;
+                    this.player.rotateSpeed = 0.05;
+                    this.player.movementSpeed = 0.01;
                     this.camera.resize();
                 };
                 GameState.prototype.draw = function (renderer) {
@@ -1079,8 +1140,8 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
                     renderer.setColor(this.floorColor);
                     renderer.fillRect(0, halfHeight, this.camera.width, halfHeight);
                     this.camera.draw(renderer);
-                    if (index_5.TouchManager.isTouched) {
-                        index_5.TouchManager.touches.forEach(function (touch) {
+                    if (index_6.TouchManager.isTouched) {
+                        index_6.TouchManager.touches.forEach(function (touch) {
                             renderer.setZIndex(0);
                             renderer.arc(touch.position.x, touch.position.y, 20, 0, 360, 5);
                             renderer.arc(touch.lastTouch.x, touch.lastTouch.y, 30, 0, 360, 5);
@@ -1089,49 +1150,60 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
                 };
                 GameState.prototype.update = function (time) {
                     var _this = this;
-                    if (!index_5.TouchManager.isTouched) {
-                        var movementX = index_5.MouseManager.movement.x;
-                        if (movementX)
-                            this.camera.rotate(movementX * this.rotateSpeed);
-                    }
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.LEFT_ARROW_KEY))
-                        this.camera.rotate(-time * this.rotateSpeed);
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.RIGHT_ARROW_KEY))
-                        this.camera.rotate(time * this.rotateSpeed);
-                    index_5.TouchManager.touches.forEach(function (touch) {
-                        if (touch.position.x > _this.camera.width) {
-                            _this.camera.rotate(-touch.move.x * _this.rotateSpeed * time);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.LEFT_ARROW_KEY))
+                        this.player.rotate(-time * this.player.rotateSpeed);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.RIGHT_ARROW_KEY))
+                        this.player.rotate(time * this.player.rotateSpeed);
+                    index_6.TouchManager.touches.forEach(function (touch) {
+                        if (touch.position.x > _this.camera.width / 2) {
+                            _this.player.rotate(-touch.move.x * _this.player.rotateSpeed * time);
                         }
                         else {
-                            _this.camera.move(touch.move.normalize().scale(_this.movementSpeed * time));
+                            _this.player.move(touch.move
+                                .normalize()
+                                .rotate(-90 + _this.player.angle)
+                                .scale(_this.player.movementSpeed * time), _this.world.map);
                         }
                     });
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.UP_ARROW_KEY))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle, this.movementSpeed * time));
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.DOWN_ARROW_KEY))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle, -this.movementSpeed * time));
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.KEY_W))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle, this.movementSpeed * time));
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.KEY_S))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle, -this.movementSpeed * time));
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.KEY_A))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle - 90, this.movementSpeed * time / 2));
-                    if (index_5.KeyInputManager.isDown(index_5.Keys.KEY_D))
-                        this.camera.move(index_6.Vector2D.fromAngle(this.camera.angle - 90, -this.movementSpeed * time / 2));
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.UP_ARROW_KEY))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle, this.player.movementSpeed * time), this.world.map);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.DOWN_ARROW_KEY))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle, -this.player.movementSpeed * time), this.world.map);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.KEY_W))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle, this.player.movementSpeed * time), this.world.map);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.KEY_S))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle, -this.player.movementSpeed * time), this.world.map);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.KEY_A))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle - 90, this.player.movementSpeed * time / 2), this.world.map);
+                    if (index_6.KeyInputManager.isDown(index_6.Keys.KEY_D))
+                        this.player.move(index_7.Vector2D.fromAngle(this.player.angle - 90, -this.player.movementSpeed * time / 2), this.world.map);
+                    this.camera.position = this.player.position;
+                    this.camera.angle = this.player.angle;
                 };
                 GameState.prototype.destroy = function () {
                     this.world = null;
                 };
                 return GameState;
             }());
-            exports_22("GameState", GameState);
+            exports_23("GameState", GameState);
         }
     };
 });
-System.register("main", ["system/game", "states/game"], function (exports_23, context_23) {
+System.register("main", ["system/game", "states/game"], function (exports_24, context_24) {
     "use strict";
-    var __moduleName = context_23 && context_23.id;
-    var game_1, game_2, canvas, game;
+    var __moduleName = context_24 && context_24.id;
+    function launchFullScreen(element) {
+        if (element.requestFullScreen) {
+            element.requestFullScreen();
+        }
+        else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        }
+        else if (element.webkitRequestFullScreen) {
+            element.webkitRequestFullScreen();
+        }
+    }
+    var game_1, game_2, canvas, fullscreenButton, game;
     return {
         setters: [
             function (game_1_1) {
@@ -1143,11 +1215,14 @@ System.register("main", ["system/game", "states/game"], function (exports_23, co
         ],
         execute: function () {
             canvas = document.getElementById('canvas');
+            fullscreenButton = document.getElementById('fullscreen');
+            fullscreenButton.addEventListener('click', function () { return launchFullScreen(canvas); });
             game = new game_1.Game({
                 canvas: canvas,
                 width: 960,
                 height: 720,
-                scale: 2
+                maxZIndex: 60,
+                scale: 1
             });
             game.resize();
             game.manager.register('game', game_2.GameState);
