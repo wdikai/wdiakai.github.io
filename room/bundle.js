@@ -25,13 +25,61 @@ System.register("graphics/color", [], function (exports_1, context_1) {
         }
     };
 });
-System.register("graphics/renderer", [], function (exports_2, context_2) {
+System.register("math/utils", [], function (exports_2, context_2) {
     "use strict";
     var __moduleName = context_2 && context_2.id;
-    var FilledRectangle, Texture2D, BufferRenderer;
+    function toRudian(angle) {
+        return angle * Math.PI / 180;
+    }
+    exports_2("toRudian", toRudian);
+    function toDegree(angle) {
+        return angle * 180 / Math.PI;
+    }
+    exports_2("toDegree", toDegree);
+    function toDecimal(input) {
+        return input - Math.floor(input);
+    }
+    exports_2("toDecimal", toDecimal);
     return {
         setters: [],
         execute: function () {
+        }
+    };
+});
+System.register("graphics/renderer", ["math/utils"], function (exports_3, context_3) {
+    "use strict";
+    var __moduleName = context_3 && context_3.id;
+    var utils_1, Arc2D, FilledRectangle, Texture2D, BufferRenderer;
+    return {
+        setters: [
+            function (utils_1_1) {
+                utils_1 = utils_1_1;
+            }
+        ],
+        execute: function () {
+            Arc2D = (function () {
+                function Arc2D(data) {
+                    this.x = data.x;
+                    this.y = data.y;
+                    this.radius = data.radius;
+                    this.startAngle = data.startAngle;
+                    this.endAngle = data.endAngle;
+                    this.width = data.width;
+                    this.zIndex = data.zIndex;
+                    this.color = data.color;
+                    this.filled = data.filled;
+                    this.hasShade = false;
+                }
+                Arc2D.prototype.draw = function (graphics) {
+                    graphics.fillStyle = this.color.toString();
+                    graphics.beginPath();
+                    graphics.lineWidth = this.width;
+                    graphics.arc(this.x, this.y, this.radius, this.startAngle, this.endAngle);
+                    this.filled ? graphics.fill() : graphics.stroke();
+                    graphics.closePath();
+                };
+                return Arc2D;
+            }());
             FilledRectangle = (function () {
                 function FilledRectangle(data) {
                     this.x = data.x;
@@ -97,6 +145,25 @@ System.register("graphics/renderer", [], function (exports_2, context_2) {
                         hasShade: hasShade
                     }));
                 };
+                BufferRenderer.prototype.arc = function (x, y, r, sAngle, eAngle, width, filled) {
+                    if (sAngle === void 0) { sAngle = 0; }
+                    if (eAngle === void 0) { eAngle = 360; }
+                    if (width === void 0) { width = 1; }
+                    if (filled === void 0) { filled = false; }
+                    var _a = this, color = _a.color, zIndex = _a.zIndex;
+                    var radius = Math.floor(r);
+                    this.buffer.push(new Arc2D({
+                        x: Math.floor(x),
+                        y: Math.floor(y),
+                        startAngle: utils_1.toRudian(sAngle),
+                        endAngle: utils_1.toRudian(eAngle),
+                        width: Math.floor(width),
+                        radius: radius,
+                        filled: filled,
+                        color: color,
+                        zIndex: zIndex,
+                    }));
+                };
                 BufferRenderer.prototype.drawImage = function (image, x, y, width, heigh, clipX, clipY, clipWidth, clipHeigh) {
                     var _a = this, zIndex = _a.zIndex, hasShade = _a.hasShade;
                     this.buffer.push(new Texture2D({
@@ -121,7 +188,7 @@ System.register("graphics/renderer", [], function (exports_2, context_2) {
                         .sort(function (firstOperation, secondOperation) { return secondOperation.zIndex - firstOperation.zIndex; })
                         .forEach(function (operation) {
                         operation.draw(_this.graphics);
-                        if (operation.hasShade) {
+                        if (operation.hasShade && operation.width && operation.heigh) {
                             _this.graphics.fillStyle = "#000000";
                             _this.graphics.globalAlpha = 1 - (1 - (operation.zIndex / _this.maxZIndex));
                             _this.graphics.fillRect(operation.x, operation.y, operation.width, operation.heigh);
@@ -132,30 +199,20 @@ System.register("graphics/renderer", [], function (exports_2, context_2) {
                 };
                 return BufferRenderer;
             }());
-            exports_2("BufferRenderer", BufferRenderer);
+            exports_3("BufferRenderer", BufferRenderer);
         }
     };
 });
-System.register("system/state/state", [], function (exports_3, context_3) {
-    "use strict";
-    var __moduleName = context_3 && context_3.id;
-    return {
-        setters: [],
-        execute: function () {
-        }
-    };
-});
-System.register("utils/class", [], function (exports_4, context_4) {
+System.register("system/state/state", [], function (exports_4, context_4) {
     "use strict";
     var __moduleName = context_4 && context_4.id;
     return {
         setters: [],
         execute: function () {
-            ;
         }
     };
 });
-System.register("utils/dictionary", [], function (exports_5, context_5) {
+System.register("utils/class", [], function (exports_5, context_5) {
     "use strict";
     var __moduleName = context_5 && context_5.id;
     return {
@@ -165,9 +222,19 @@ System.register("utils/dictionary", [], function (exports_5, context_5) {
         }
     };
 });
-System.register("system/state/state-manager", [], function (exports_6, context_6) {
+System.register("utils/dictionary", [], function (exports_6, context_6) {
     "use strict";
     var __moduleName = context_6 && context_6.id;
+    return {
+        setters: [],
+        execute: function () {
+            ;
+        }
+    };
+});
+System.register("system/state/state-manager", [], function (exports_7, context_7) {
+    "use strict";
+    var __moduleName = context_7 && context_7.id;
     var StateManager;
     return {
         setters: [],
@@ -198,7 +265,6 @@ System.register("system/state/state-manager", [], function (exports_6, context_6
                         newState.init(params);
                     }
                     this.currentState = newState;
-                    console.log('setState', stateName);
                 };
                 StateManager.prototype.update = function (deltaTime) {
                     if (this.currentState) {
@@ -212,13 +278,13 @@ System.register("system/state/state-manager", [], function (exports_6, context_6
                 };
                 return StateManager;
             }());
-            exports_6("StateManager", StateManager);
+            exports_7("StateManager", StateManager);
         }
     };
 });
-System.register("system/game", ["system/state/state-manager", "graphics/renderer"], function (exports_7, context_7) {
+System.register("system/game", ["system/state/state-manager", "graphics/renderer"], function (exports_8, context_8) {
     "use strict";
-    var __moduleName = context_7 && context_7.id;
+    var __moduleName = context_8 && context_8.id;
     var state_manager_1, renderer_1, Game;
     return {
         setters: [
@@ -263,13 +329,13 @@ System.register("system/game", ["system/state/state-manager", "graphics/renderer
                 };
                 return Game;
             }());
-            exports_7("Game", Game);
+            exports_8("Game", Game);
         }
     };
 });
-System.register("event/keys", [], function (exports_8, context_8) {
+System.register("event/keys", [], function (exports_9, context_9) {
     "use strict";
-    var __moduleName = context_8 && context_8.id;
+    var __moduleName = context_9 && context_9.id;
     var Keys;
     return {
         setters: [],
@@ -289,13 +355,13 @@ System.register("event/keys", [], function (exports_8, context_8) {
                 Keys.KEY_S = 83;
                 Keys.KEY_D = 68;
             })(Keys || (Keys = {}));
-            exports_8("Keys", Keys);
+            exports_9("Keys", Keys);
         }
     };
 });
-System.register("event/key-input-manager", [], function (exports_9, context_9) {
+System.register("event/key-input-manager", [], function (exports_10, context_10) {
     "use strict";
-    var __moduleName = context_9 && context_9.id;
+    var __moduleName = context_10 && context_10.id;
     function makeHandler(value) {
         return function (event) {
             var keyCode = event.keyCode;
@@ -332,57 +398,36 @@ System.register("event/key-input-manager", [], function (exports_9, context_9) {
                 };
                 return KeyInputManager;
             }());
-            exports_9("KeyInputManager", KeyInputManager);
+            exports_10("KeyInputManager", KeyInputManager);
             ;
         }
     };
 });
-System.register("math/point", [], function (exports_10, context_10) {
+System.register("math/point", [], function (exports_11, context_11) {
     "use strict";
-    var __moduleName = context_10 && context_10.id;
+    var __moduleName = context_11 && context_11.id;
     var ZERO;
     return {
         setters: [],
         execute: function () {
-            exports_10("ZERO", ZERO = {
+            exports_11("ZERO", ZERO = {
                 x: 0,
                 y: 0
             });
         }
     };
 });
-System.register("math/utils", [], function (exports_11, context_11) {
-    "use strict";
-    var __moduleName = context_11 && context_11.id;
-    function toRudian(angle) {
-        return angle * Math.PI / 180;
-    }
-    exports_11("toRudian", toRudian);
-    function toDegree(angle) {
-        return angle * 180 / Math.PI;
-    }
-    exports_11("toDegree", toDegree);
-    function toDecimal(input) {
-        return input - Math.floor(input);
-    }
-    exports_11("toDecimal", toDecimal);
-    return {
-        setters: [],
-        execute: function () {
-        }
-    };
-});
 System.register("math/vector2", ["math/point", "math/utils"], function (exports_12, context_12) {
     "use strict";
     var __moduleName = context_12 && context_12.id;
-    var point_1, utils_1, Vector2D;
+    var point_1, utils_2, Vector2D;
     return {
         setters: [
             function (point_1_1) {
                 point_1 = point_1_1;
             },
-            function (utils_1_1) {
-                utils_1 = utils_1_1;
+            function (utils_2_1) {
+                utils_2 = utils_2_1;
             }
         ],
         execute: function () {
@@ -409,7 +454,7 @@ System.register("math/vector2", ["math/point", "math/utils"], function (exports_
                     if (Vector2D.cross(fn, sn) < 0) {
                         angle = -angle;
                     }
-                    return utils_1.toDegree(angle);
+                    return utils_2.toDegree(angle);
                 };
                 Vector2D.distance = function (from, to) {
                     if (to === void 0) { to = point_1.ZERO; }
@@ -419,7 +464,7 @@ System.register("math/vector2", ["math/point", "math/utils"], function (exports_
                 };
                 Vector2D.fromAngle = function (angle, distance) {
                     if (distance === void 0) { distance = 1; }
-                    return new Vector2D(Math.cos(utils_1.toRudian(angle)) * distance, Math.sin(utils_1.toRudian(angle)) * distance);
+                    return new Vector2D(Math.cos(utils_2.toRudian(angle)) * distance, Math.sin(utils_2.toRudian(angle)) * distance);
                 };
                 Object.defineProperty(Vector2D.prototype, "x", {
                     get: function () {
@@ -495,8 +540,8 @@ System.register("math/index", ["math/point", "math/vector2", "math/utils"], func
             function (vector2_1_1) {
                 exportStar_1(vector2_1_1);
             },
-            function (utils_2_1) {
-                exportStar_1(utils_2_1);
+            function (utils_3_1) {
+                exportStar_1(utils_3_1);
             }
         ],
         execute: function () {
@@ -592,7 +637,7 @@ System.register("event/touch-manager", ["math/index"], function (exports_15, con
                 var changedTouches = event.changedTouches;
                 for (var touchNumber = 0; touchNumber < event.changedTouches.length; touchNumber++) {
                     var touchEvent = changedTouches[touchNumber];
-                    var position = new index_2.Vector2D(touchEvent.screenX, touchEvent.screenY);
+                    var position = new index_2.Vector2D(touchEvent.clientX, touchEvent.clientY);
                     touchDatas[touchEvent.identifier] = {
                         identifier: touchEvent.identifier,
                         move: index_2.Vector2D.zero,
@@ -608,23 +653,15 @@ System.register("event/touch-manager", ["math/index"], function (exports_15, con
                     var touchData = touchDatas[touchEvent.identifier] || {
                         identifier: touchEvent.identifier
                     };
-                    var move = new index_2.Vector2D(touchEvent.screenX, touchEvent.screenY);
-                    if (touchData.lastTouch) {
-                        touchData.move = touchData.lastTouch.sub(move);
-                    }
-                    touchData.lastTouch = move;
+                    touchData.lastTouch = new index_2.Vector2D(touchEvent.clientX, touchEvent.clientY);
+                    touchData.move = touchData.position.sub(touchData.lastTouch).normalize();
                 }
             });
             window.addEventListener('touchend', function (event) {
                 var changedTouches = event.changedTouches;
                 for (var touchNumber = 0; touchNumber < event.changedTouches.length; touchNumber++) {
                     var touchEvent = changedTouches[touchNumber];
-                    var touchData = touchDatas[touchEvent.identifier] || {
-                        identifier: touchEvent.identifier
-                    };
-                    var move = new index_2.Vector2D(touchEvent.screenX, touchEvent.screenY);
-                    touchData.move = touchData.lastTouch.sub(move);
-                    touchData.lastTouch = null;
+                    delete touchDatas[touchEvent.identifier];
                 }
             });
             TouchManager = (function () {
@@ -837,14 +874,14 @@ System.register("system/world", [], function (exports_20, context_20) {
 System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray"], function (exports_21, context_21) {
     "use strict";
     var __moduleName = context_21 && context_21.id;
-    var index_4, utils_3, ray_1, TILE_SIZE, image, RayCastCamera;
+    var index_4, utils_4, ray_1, TILE_SIZE, image, RayCastCamera;
     return {
         setters: [
             function (index_4_1) {
                 index_4 = index_4_1;
             },
-            function (utils_3_1) {
-                utils_3 = utils_3_1;
+            function (utils_4_1) {
+                utils_4 = utils_4_1;
             },
             function (ray_1_1) {
                 ray_1 = ray_1_1;
@@ -909,7 +946,7 @@ System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray
                     hit = hits[hitNumber];
                     if (hit && hit.height) {
                         var angle = (rayNumber - this.halfRayCount) * this.focalLength;
-                        var z = hit.distance * Math.cos(utils_3.toRudian(angle));
+                        var z = hit.distance * Math.cos(utils_4.toRudian(angle));
                         var bottom = this.height / 2 * (1 + 2 / z);
                         var height = this.height / z * 2;
                         var x = rayNumber * this.columnSize;
@@ -1042,6 +1079,13 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
                     renderer.setColor(this.floorColor);
                     renderer.fillRect(0, halfHeight, this.camera.width, halfHeight);
                     this.camera.draw(renderer);
+                    if (index_5.TouchManager.isTouched) {
+                        index_5.TouchManager.touches.forEach(function (touch) {
+                            renderer.setZIndex(0);
+                            renderer.arc(touch.position.x, touch.position.y, 20, 0, 360, 5);
+                            renderer.arc(touch.lastTouch.x, touch.lastTouch.y, 30, 0, 360, 5);
+                        });
+                    }
                 };
                 GameState.prototype.update = function (time) {
                     var _this = this;
@@ -1056,7 +1100,7 @@ System.register("states/game", ["event/index", "math/index", "system/rey-cast-ca
                         this.camera.rotate(time * this.rotateSpeed);
                     index_5.TouchManager.touches.forEach(function (touch) {
                         if (touch.position.x > _this.camera.width) {
-                            _this.camera.rotate(touch.move.x * _this.rotateSpeed * 3);
+                            _this.camera.rotate(-touch.move.x * _this.rotateSpeed * time);
                         }
                         else {
                             _this.camera.move(touch.move.normalize().scale(_this.movementSpeed * time));
