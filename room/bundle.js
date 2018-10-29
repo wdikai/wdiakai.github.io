@@ -853,7 +853,7 @@ System.register("system/rey-cast-camera", ["math/index", "math/utils", "math/ray
         execute: function () {
             TILE_SIZE = 16;
             image = new Image();
-            image.src = '/assets/tiles.png';
+            image.src = './assets/tiles.png';
             RayCastCamera = (function () {
                 function RayCastCamera(options) {
                     var _this = this;
