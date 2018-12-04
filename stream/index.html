@@ -13,7 +13,7 @@
     <video id="video" controls style="width: 100%; height: auto"></video>
     <script>
         var video = document.getElementById('video');
-        var url = 'test-live-storage-1.s3.amazonaws.com/test3/aws-media-services.m3u8';
+        var url = 'https://test-live-storage-1.s3.amazonaws.com/test3/aws-media-services.m3u8';
         if (Hls.isSupported()) {
             var hls = new Hls();
             hls.loadSource(url);
